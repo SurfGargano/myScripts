@@ -7,6 +7,7 @@ Change history :
 
 */
 
+
 const prefix = '0_userdata.0.'; 
 
 const SolarJSON1            = prefix+"SolarForecast.JSON1";
