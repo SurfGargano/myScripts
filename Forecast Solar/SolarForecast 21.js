@@ -71,8 +71,8 @@ kwp - installed modules power in kilo watt
 */
 
 
-const lat = '48.506312'
-const lon = '12.097953'
+const lat = 'xx.506312'
+const lon = 'xx.097953'
 const forcastUrl = 'https://api.forecast.solar/estimate/';
 
 var options1 = {url: forcastUrl+lat+'/'+lon+'/40/90/7.26', method: 'GET', headers: { 'User-Agent': 'request' }};

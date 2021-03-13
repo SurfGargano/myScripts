@@ -68,8 +68,8 @@ az - plane azimuth, -180 … 180 (-180 = north, -90 = east, 0 = south, 90 = west
 kwp - installed modules power in kilo watt
 */
 
-const lat = '48.506312';
-const long = '12.097953';
+const lat = 'xx.506312';
+const long = 'xx.097953';
 const url = 'https://api.forecast.solar/estimate/';
 
 // Fenster Wohnzimmer
