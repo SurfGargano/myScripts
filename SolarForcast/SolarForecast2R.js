@@ -77,8 +77,8 @@ kwp - installed modules power in kilo watt
 */
 
 // set lat and lon for the destination
-const lat = '48.506312'
-const lon = '12.097953'
+const lat = 'xx.yyyy'
+const lon = 'xx.yyyy'
 
 const forcastUrl = 'https://api.forecast.solar';
 
