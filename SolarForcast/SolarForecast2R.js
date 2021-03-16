@@ -1,12 +1,16 @@
 /* read solar forecasts for 2 different orientations
 Author : gargano
-Version 1.0.0 
-Last Update 13.3.2021 
+
+Display in VIS : use JSON Chart from Scrounger
+
+Version 1.0.1 
+Last Update 16.3.2021 
 
 Change history :
-
+1.0.1 / 16.3.2021   :   use setStateAsync(myUrl.mySolarJSON.. to avoid time conflicts 
+                        dp's are now saved in '0_userdata.0.'
+                        use variables for setting lat, lon, color..
 */
-
 
 const prefix = '0_userdata.0.'; 
 
@@ -30,7 +34,7 @@ const createStateList = [
     {name :SolarJSONGraph, type:"string", role : "value"}
 ]
  
- 
+// create states if not exists 
 async function createMyState(item) {
     if (!existsState(item.name)) {
     await createStateAsync(item.name, { 
@@ -58,6 +62,7 @@ async function main () {
 
 main(); 
 
+// set logging = true for logging
 const logging = true;
 
 var request = require('request');
@@ -71,28 +76,33 @@ az - plane azimuth, -180 … 180 (-180 = north, -90 = east, 0 = south, 90 = west
 kwp - installed modules power in kilo watt
 */
 
-
-const lat = 'xx.506312'
-const lon = 'xx.097953'
+// set lat and lon for the destination
+const lat = 'xx.yyyy'
+const lon = 'xx.yyyy'
 const forcastUrl = 'https://api.forecast.solar/estimate/';
 
 var options1 = {url: forcastUrl+lat+'/'+lon+'/40/90/7.26', method: 'GET', headers: { 'User-Agent': 'request' }};
 var options2 = {url: forcastUrl+lat+'/'+lon+'/40/-90/2.64', method: 'GET', headers: { 'User-Agent': 'request' }};
  
+const legendTest = ["Ost","West"];
+const graphColor = ["red","green"];
+const datalabelColor = ["lightgreen","lightblue"];
+
+const tooltip_AppendText= " kWh";
  
 var urls = [
   {myUrl:options1,mySolarJSON:SolarJSON1,mySolarJSONAll:SolarJSONAll1,mySolarJSONGraphAll:SolarJSONGraphAll1},
   {myUrl:options2,mySolarJSON:SolarJSON2,mySolarJSONAll:SolarJSONAll2,mySolarJSONGraphAll:SolarJSONGraphAll2}
 ]
  
-var promises = urls.map(myAsyncRequest);
- 
+
+// handle the request : convert the result to table and graph 
 function myAsyncRequest(myUrl) {
   log('Request '+myUrl.myUrl.url);
   return new Promise((resolve, reject) => {
      request(myUrl.myUrl.url, async function(error, response, body) {
         if (!error && response.statusCode == 200) {
-            if (logging) console.log (body);
+            if (logging) console.log ('body : '+body);
             let watts = JSON.parse(body).result.watts;
             setState(myUrl.mySolarJSONAll, JSON.stringify(watts), true);
             let table = [];
@@ -128,6 +138,8 @@ function myAsyncRequest(myUrl) {
   })
 }
  
+
+// summarize the single watts results to table and graph 
 function makeTable () {
     if (logging) console.log ('MakeTable');
     let watts1 = JSON.parse(getState(SolarJSON1).val);
@@ -136,6 +148,7 @@ function makeTable () {
     let table = [];
 	let axisLabels = [];
 	
+    // make table
     for(var n=0;n<watts1.length;n++) {
             let entry = {};
             entry.Uhrzeit = watts1[n].Uhrzeit;
@@ -145,6 +158,7 @@ function makeTable () {
             table.push(entry);
     } 
 	
+    // prepare data for graph
 	let graphTimeData1 = [];
     for(var n=0;n<watts1.length;n++) {
     	graphTimeData1.push(watts1[n].Leistung);
@@ -157,13 +171,13 @@ function makeTable () {
    		graphTimeData2.push(watts2[n].Leistung);	
     } 
 
- 
+    // make total graph
     var graph = {};
     var graphAllData = [];
-    var graphData = {"tooltip_AppendText": " kWh","legendText": "Ost","yAxis_id": 1,"type": "bar","displayOrder": 2,"barIsStacked": true,"color":"green","barStackId":1,"datalabel_rotation":-90,"datalabel_color":"lightgreen","datalabel_fontSize":10};
+    var graphData = {"tooltip_AppendText":  tooltip_AppendText,"legendText": legendTest[0],"yAxis_id": 1,"type": "bar","displayOrder": 2,"barIsStacked": true,"color":graphColor[0],"barStackId":1,"datalabel_rotation":-90,"datalabel_color":datalabelColor[0],"datalabel_fontSize":10};
     graphData.data = graphTimeData1;
     graphAllData.push(graphData);
-	graphData = {"tooltip_AppendText": " kWh","legendText": "West","yAxis_id": 1,"type": "bar","displayOrder": 1,"barIsStacked": true,"color":"red","barStackId":1,"datalabel_rotation":-90,"datalabel_color":"lightblue","datalabel_fontSize":10};
+	graphData = {"tooltip_AppendText": tooltip_AppendText,"legendText": legendTest[1],"yAxis_id": 1,"type": "bar","displayOrder": 1,"barIsStacked": true,"color":graphColor[1],"barStackId":1,"datalabel_rotation":-90,"datalabel_color":datalabelColor[1],"datalabel_fontSize":10};
     graphData.data = graphTimeData2;
     graphAllData.push(graphData);
     graph.graphs=graphAllData;
@@ -172,15 +186,16 @@ function makeTable () {
     setState(SolarJSONGraph, JSON.stringify(graph), true);
 }
  
+// get the requests 
 async function getSolar() {
-   promises = urls.map(myAsyncRequest);
+   let promises = urls.map(myAsyncRequest);
    await Promise.all(promises)
     .then(function(bodys) {
         if (logging) console.log("All url loaded");
         makeTable();
     })
     .catch(error => {
-        console.log(error)
+        console.log('Error : '+error)
     })  
 }
 

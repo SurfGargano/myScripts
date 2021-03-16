@@ -2,6 +2,9 @@
 
 /* read solar forecasts for 3 different orientations
 Author : gargano
+
+Display in VIS : use JSON Chart from Scrounger
+
 Version 1.0.0 
 Last Update 13.3.2021 
 
@@ -31,6 +34,7 @@ const createStateList = [
     {name :idSolarJSONGraph, type:"string", role : "value"}
 ]
 
+// create states if not exists 
 async function createMyState(item) {
     if (!existsState(item.name)) {
         await createStateAsync(item.name, { 
@@ -68,8 +72,9 @@ az - plane azimuth, -180 … 180 (-180 = north, -90 = east, 0 = south, 90 = west
 kwp - installed modules power in kilo watt
 */
 
-const lat = 'xx.506312';
-const long = 'xx.097953';
+// set lat and lon for the destination
+const lat = 'xx.yyyy';
+const long = 'xx.yyyy';
 const url = 'https://api.forecast.solar/estimate/';
 
 // Fenster Wohnzimmer
@@ -79,7 +84,12 @@ var url2 = url+lat+'/'+long+'/45/45/1';
 // Fenster Küche / Schlafzimmer
 var url3 = url+lat+'/'+long+'/90/45/1';
 
-const logging = true;
+const legendTest = ["Wohn","Dach","Küche"];
+const graphColor = ["red","green","yellow"];
+const datalabelColor = ["lightgreen","lightblue","lightblue"];
+
+const tooltipAppendText= " kWh";
+
 
 var solarJson1;
 var solarJson2;
@@ -89,19 +99,17 @@ var solarJsons = [solarJson1,solarJson2,solarJson3];
 const idSolarJSONS = [idSolarJSON1,idSolarJSON2,idSolarJSON3]
 const idSolarToDayS = [idSolarToday1,idSolarToday2,idSolarToday3]
 
-const request1 = axios.get(url1);
-const request2 = axios.get(url2);
-const request3 = axios.get(url3);
-const requests = [request1,request2,request3];
+
+const logging = true;
 
 var mySchedule ='{"time":{"start":"03:00","end":"22:00","mode":"hours","interval":1},"period":{"days":1}}'
 
-//mySchedule ='* * * * *';
-
+// handle the request : convert the result to table and graph 
 function makeResponse (thisResponse,thisIDSolarJSON,idx,thisIDSolarToDay) {
     // handle success
     let today = formatDate(new Date(), 'YYYY-MM-DD');
-    var watts = thisResponse.data.result.watts;  
+    var watts = thisResponse.data.result.watts; 
+    if (logging) log ('Watts '+JSON.stringify(watts)); 
     let table = [];
     for(let time in watts) {
             let entry = {};
@@ -115,22 +123,20 @@ function makeResponse (thisResponse,thisIDSolarJSON,idx,thisIDSolarToDay) {
     setState(thisIDSolarToDay, kWhToDay, true); 
 }
 
-
+// summarize the single watts results to table and graph 
 function makeTable () {
-    if (logging) console.log ('MakeTable');
+    if (logging) log ('MakeTable');
     
     let watts1 = JSON.parse(solarJsons[0]);
     let watts2 = JSON.parse(solarJsons[1]); 
     let watts3 = JSON.parse(solarJsons[2]); 
-    if (logging) console.log ('Items: '+watts1.length);
-    let today = formatDate(new Date(), 'YYYY-MM-DD');
+    if (logging) log ('Items: '+watts1.length);
     let table = [];
-    let graphTimeData = [];
     let axisLabels = [];
-
+    
+    // make table
     for(var n=0;n<watts1.length;n++) {
-           let entry = {};
-            let graphEntry ={};
+            let entry = {};
             entry.Uhrzeit = watts1[n].Uhrzeit;
             entry.Leistung1 = watts1[n].Leistung;
             entry.Leistung2 = watts2[n].Leistung;
@@ -139,6 +145,7 @@ function makeTable () {
             table.push(entry);
     } 
 
+    // prepare data for graph
     let graphTimeData1 = [];
     for(var n=0;n<watts1.length;n++) {
     	graphTimeData1.push(watts1[n].Leistung);
@@ -156,15 +163,16 @@ function makeTable () {
    		graphTimeData3.push(watts3[n].Leistung);	
     } 
 
+    // make total graph
     var graph = {};
     var graphAllData = [];
-    var graphData = {"tooltip_AppendText": " kWh","legendText": "Wohn","yAxis_id": 1,"type": "bar","displayOrder": 1,"barIsStacked": true,"color":"green","barStackId":1,"datalabel_rotation":-90,"datalabel_color":"lightgreen","datalabel_fontSize":10};
+    var graphData = {"tooltip_AppendText":tooltipAppendText,"legendText": legendTest[0],"yAxis_id": 1,"type": "bar","displayOrder": 1,"barIsStacked": true,"color":graphColor[0],"barStackId":1,"datalabel_rotation":-90,"datalabel_color":datalabelColor[0],"datalabel_fontSize":10};
     graphData.data = graphTimeData1;
     graphAllData.push(graphData);
-	graphData = {"tooltip_AppendText": " kWh","legendText": "Dach","yAxis_id": 1,"type": "bar","displayOrder": 2,"barIsStacked": true,"color":"red","barStackId":1,"datalabel_rotation":-90,"datalabel_color":"lightblue","datalabel_fontSize":10};
+	graphData = {"tooltip_AppendText": tooltipAppendText,"legendText": legendTest[1],"yAxis_id": 1,"type": "bar","displayOrder": 2,"barIsStacked": true,"color":graphColor[1],"barStackId":1,"datalabel_rotation":-90,"datalabel_color":datalabelColor[1],"datalabel_fontSize":10};
     graphData.data = graphTimeData2;
     graphAllData.push(graphData);
-    graphData = {"tooltip_AppendText": " kWh","legendText": "Küche","yAxis_id": 1,"type": "bar","displayOrder": 3,"barIsStacked": true,"color":"yellow","barStackId":1,"datalabel_rotation":-90,"datalabel_color":"lightblue","datalabel_fontSize":10};
+    graphData = {"tooltip_AppendText": tooltipAppendText,"legendText": legendTest[2],"yAxis_id": 1,"type": "bar","displayOrder": 3,"barIsStacked": true,"color":graphColor[2],"barStackId":1,"datalabel_rotation":-90,"datalabel_color":datalabelColor[2],"datalabel_fontSize":10};
     graphData.data = graphTimeData3;
     graphAllData.push(graphData);
     graph.graphs=graphAllData;
@@ -175,17 +183,21 @@ function makeTable () {
 
 
 async function getSolar() {
+    const request1 = axios.get(url1);
+    const request2 = axios.get(url2);
+    const request3 = axios.get(url3);
+    let requests = [request1,request2,request3];
     await axios
         .all(requests)
         .then(axios.spread((...responses) => {
             // use/access the results 
             for (var n=0;n<responses.length;n++) {
-                console.log(responses[n].data);
+                if (logging) console.log(responses[n].data);
                 makeResponse (responses[n],idSolarJSONS[n],n,idSolarToDayS[n]);      
             }
             if (logging) console.log("All url loaded");
             makeTable();
-            }))
+        }))
         .catch(errors => {
             // react on errors.
             console.log(errors)
