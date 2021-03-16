@@ -51,9 +51,9 @@ async function makeMyStateList (array) {
     const promises = array.map(createMyState);
     await Promise.all(promises);
 }
-
-mySchedule = '6 6-22 * * *';
-
+ 
+var mySchedule = '0,30 * * * *';
+ 
 async function main () {
     await makeMyStateList(createStateList);
     schedule(mySchedule, getSolar );
@@ -77,8 +77,8 @@ kwp - installed modules power in kilo watt
 */
 
 // set lat and lon for the destination
-const lat = 'xx.yyyy'
-const lon = 'xx.yyyy'
+const lat = 'xx.yyy'
+const lon = 'xx.yyy'
 
 const forcastUrl = 'https://api.forecast.solar';
 
@@ -88,8 +88,8 @@ const forcastUrl = 'https://api.forecast.solar';
 const api = '';
 
 const declination = ['40','40'];
-const azimuth = ['90','-90'];
-const kwp = ['7.26','2.64'];
+const azimuth = ['-90','90'];
+const kwp = ['2.64','7.26'];
 
 var options1 = {url: forcastUrl+api+'/estimate/'+lat+'/'+lon+'/'+declination[0]+'/'+azimuth[0]+'/'+kwp[0], method: 'GET', headers: { 'User-Agent': 'request' }};
 var options2 = {url: forcastUrl+api+'/estimate/'+lat+'/'+lon+'/'+declination[1]+'/'+azimuth[1]+'/'+kwp[1], method: 'GET', headers: { 'User-Agent': 'request' }};
