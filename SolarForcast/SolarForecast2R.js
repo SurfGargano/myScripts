@@ -77,12 +77,19 @@ kwp - installed modules power in kilo watt
 */
 
 // set lat and lon for the destination
-const lat = 'xx.yyyy'
-const lon = 'xx.yyyy'
+const lat = '48.506312'
+const lon = '12.097953'
 const forcastUrl = 'https://api.forecast.solar/estimate/';
+// if use the api key
+const api = 'xxxxxxxxxxxxxxxx/estimate';
+// else 
+// const api = '';
+const declination = ['40','40'];
+const azimuth = ['90','-90'];
+const kwp = ['7.26','2.64'];
 
-var options1 = {url: forcastUrl+lat+'/'+lon+'/40/90/7.26', method: 'GET', headers: { 'User-Agent': 'request' }};
-var options2 = {url: forcastUrl+lat+'/'+lon+'/40/-90/2.64', method: 'GET', headers: { 'User-Agent': 'request' }};
+var options1 = {url: forcastUrl+api+'/'+lat+'/'+lon+'/'+declination[0]+'/'+azimuth[0]+'/'+kwp[0], method: 'GET', headers: { 'User-Agent': 'request' }};
+var options2 = {url: forcastUrl+api+'/'+lat+'/'+lon+'/'+declination[1]+'/'+azimuth[1]+'/'+kwp[1], method: 'GET', headers: { 'User-Agent': 'request' }};
  
 const legendTest = ["Ost","West"];
 const graphColor = ["red","green"];

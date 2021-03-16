@@ -73,8 +73,8 @@ kwp - installed modules power in kilo watt
 */
 
 // set lat and lon for the destination
-const lat = 'xx.yyyy';
-const long = 'xx.yyyy';
+const lat = '48.506312';
+const long = '12.097953';
 const url = 'https://api.forecast.solar/estimate/';
 
 // Fenster Wohnzimmer
