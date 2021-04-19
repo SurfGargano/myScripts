@@ -5,7 +5,7 @@
     Last Update 19.4.2021 
 
     Change history :
-
+    1.0.1 global definitons moved to global definiton file
 
 *   @author Moritz Heusinger <moritz.heusinger@gmail.com>
 *   https://iot-blog.net/2019/02/08/iobroker-homematic-ccu-ueberwachen/
@@ -28,6 +28,8 @@ const idCCURPC3 = 'hm-rpc.3.info.connection';
 const idCCUConnection =  prefix+'ccu.connection';
 const idCCUConnectionChangeTime =  prefix+'ccu.connectionChangeTime';
 const idCCURebootNow = prefix+'ccu.rebootNow';
+
+const cuxDId = 'CUX2801001'; 
 
 const createStateList = [
     {name :idCpuFreq, type:"number", role : "value",def : 0},
@@ -77,9 +79,9 @@ schedule('*/2 * * * *', () => {
     /* CuxD based*/
     const upTimeScript = `
         string command = "cat /proc/uptime | awk '// { printf $1/3600 }'";
-        dom.GetObject("CUxD.CUX2801001:2.CMD_SETS").State(command);
-        dom.GetObject("CUxD.CUX2801001:2.CMD_QUERY_RET").State (1);
-        WriteLine(dom.GetObject("CUxD.CUX2801001:2.CMD_RETS").State());`;
+        dom.GetObject("CUxD."+cuxDId+":2.CMD_SETS").State(command);
+        dom.GetObject("CUxD."+cuxDId+":2.CMD_QUERY_RET").State (1);
+        WriteLine(dom.GetObject("CUxD."+cuxDId+":2.CMD_RETS").State());`;
 
     sendTo('hm-rega.0', upTimeScript, res => {
         if (logging) log(JSON.stringify(res), 'info');
@@ -105,9 +107,9 @@ schedule('*/2 * * * *', () => {
     const sysTempScript = `
 
         string command = "/usr/bin/vcgencmd measure_temp | awk '// { printf substr($1, length($1) -5, 4)}'";
-        dom.GetObject("CUxD.CUX2801001:1.CMD_SETS").State(command);
-        dom.GetObject("CUxD.CUX2801001:1.CMD_QUERY_RET").State(1);
-        WriteLine(dom.GetObject("CUxD.CUX2801001:1.CMD_RETS").State());`;
+        dom.GetObject("CUxD."+cuxDId+":1.CMD_SETS").State(command);
+        dom.GetObject("CUxD."+cuxDId+":1.CMD_QUERY_RET").State(1);
+        WriteLine(dom.GetObject("CUxD."+cuxDId+":1.CMD_RETS").State());`;
 
     sendTo('hm-rega.0', sysTempScript, res => {
         if (logging) log(JSON.stringify(res), 'info');
@@ -126,9 +128,9 @@ schedule('*/2 * * * *', () => {
     /* CuxD based */
     const cpuFrequencyScript = `
         string command = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq | awk '// {printf $1/1000}'";
-        dom.GetObject("CUxD.CUX2801001:3.CMD_SETS").State(command);
-        dom.GetObject("CUxD.CUX2801001:3.CMD_QUERY_RET").State (1);
-        WriteLine(dom.GetObject ("CUxD.CUX2801001:3.CMD_RETS").State());`;
+        dom.GetObject("CUxD."+cuxDId+":3.CMD_SETS").State(command);
+        dom.GetObject("CUxD."+cuxDId+":3.CMD_QUERY_RET").State (1);
+        WriteLine(dom.GetObject ("CUxD."+cuxDId+":3.CMD_RETS").State());`;
 
     sendTo('hm-rega.0', cpuFrequencyScript, res => {
         if (logging) log(JSON.stringify(res), 'info');
@@ -143,8 +145,8 @@ schedule('*/2 * * * *', () => {
 
 const usePushOver = true;
 const useEmail = false;
-const emailFrom = "xxx";
-const emailTo = "xxx";
+const emailFrom = myEmailFrom;  // defined in global
+const emailTo = myEmailTo;      // defined in global
 const useccuRega = true;
 const useccuRPC0 = true;
 const useccuRPC1 = true;
@@ -152,8 +154,8 @@ const useccuRPC2 = true;
 const useccuRPC3 = true;
 
 
-const pushOverToken = 'xxx';
-const pushOverUser = 'xxx';
+const pushOverToken = myPushOverToken;      // defined in global
+const pushOverUser = myPushOverUserWerner;  // defined in global
 
 
 
@@ -259,17 +261,18 @@ on({id:[idCCURega,idCCURPC0,idCCURPC1,idCCURPC2,idCCURPC3] , change:'ne'}, async
 node_ssh = require('node-ssh').NodeSSH;
 ssh = new node_ssh();
 
-const CCUIP = '192.168.xx.xx'
-const CCUUser = 'xxx';
-const CCUPass = 'xxx';
+const ccuIP = myCCUIP;              // defined in global
+const ccuSSHUser = myCCUSSHUser;    // defined in global
+const ccuSSHPass = myCCUSSHPass;    // defined in global
+
 
 function rebootCCU() {
     var rebootActive = getState(idCCURebootNow).val;
     if (rebootActive===true) {
         ssh.connect({
-            host: CCUIP,
-            username: CCUUser,
-            password: CCUPass
+            host: ccuIP,
+            username: ccuSSHUser,
+            password: ccuSSHPass
         })
         .then(() => {
             if (logging) console.log('ssh : Connected')  
