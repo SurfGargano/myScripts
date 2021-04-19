@@ -260,8 +260,8 @@ node_ssh = require('node-ssh').NodeSSH;
 ssh = new node_ssh();
 
 const CCUIP = '192.168.xx.xx'
-const CCUUser = 'root';
-const CCUPass = 'Charly';
+const CCUUser = 'xxx';
+const CCUPass = 'xxx';
 
 function rebootCCU() {
     var rebootActive = getState(idCCURebootNow).val;
