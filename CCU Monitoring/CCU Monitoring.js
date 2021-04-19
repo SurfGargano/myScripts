@@ -143,8 +143,8 @@ schedule('*/2 * * * *', () => {
 
 const usePushOver = true;
 const useEmail = false;
-const emailFrom = "werner.dungs@dusotec.de";
-const emailTo = "werner.dungs@dusotec.de";
+const emailFrom = "xxx";
+const emailTo = "xxx";
 const useccuRega = true;
 const useccuRPC0 = true;
 const useccuRPC1 = true;
@@ -152,8 +152,8 @@ const useccuRPC2 = true;
 const useccuRPC3 = true;
 
 
-const pushOverToken = 'abbf48prbgatevebcz9mxttbkrq9nx';
-const pushOverUser = 'gdtu8qansbghxnvw8exz1ad1zn7m89';
+const pushOverToken = 'xxx';
+const pushOverUser = 'xxx';
 
 
 
@@ -259,7 +259,7 @@ on({id:[idCCURega,idCCURPC0,idCCURPC1,idCCURPC2,idCCURPC3] , change:'ne'}, async
 node_ssh = require('node-ssh').NodeSSH;
 ssh = new node_ssh();
 
-const CCUIP = '192.168.178.96'
+const CCUIP = '192.168.xx.xx'
 const CCUUser = 'root';
 const CCUPass = 'Charly';
 
