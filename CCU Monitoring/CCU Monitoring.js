@@ -1,11 +1,12 @@
 /*  Script CCU Monitoring
     Author : gargano
 
-    Version 1.0.0 
-    Last Update 19.4.2021 
+    Version 1.0.2 
+    Last Update 24.10.2021 
 
     Change history :
     1.0.1 global definitons moved to global definiton file
+    1.0.2 use await getStateAsync
 
 *   @author Moritz Heusinger <moritz.heusinger@gmail.com>
 *   https://iot-blog.net/2019/02/08/iobroker-homematic-ccu-ueberwachen/
@@ -29,7 +30,6 @@ const idCCUConnection =  prefix+'ccu.connection';
 const idCCUConnectionChangeTime =  prefix+'ccu.connectionChangeTime';
 const idCCURebootNow = prefix+'ccu.rebootNow';
 
-const cuxDId = 'CUX2801001'; 
 
 const createStateList = [
     {name :idCpuFreq, type:"number", role : "value",def : 0},
@@ -60,7 +60,9 @@ async function main () {
     await makeMyStateList(createStateList);
     let ts = Date.now();
     setState(idCCUConnectionChangeTime, ts);
-    setState(idCCUConnection,checkCCUConnection ());   
+    var mycheckCCUConnection= await checkCCUConnection ();
+    await setStateAsync(idCCUConnection,mycheckCCUConnection); 
+//   log('ccuConnection '+mycheckCCUConnection,'warn');  
 }
 
 main();
@@ -79,9 +81,9 @@ schedule('*/2 * * * *', () => {
     /* CuxD based*/
     const upTimeScript = `
         string command = "cat /proc/uptime | awk '// { printf $1/3600 }'";
-        dom.GetObject("CUxD."+cuxDId+":2.CMD_SETS").State(command);
-        dom.GetObject("CUxD."+cuxDId+":2.CMD_QUERY_RET").State (1);
-        WriteLine(dom.GetObject("CUxD."+cuxDId+":2.CMD_RETS").State());`;
+        dom.GetObject("CUxD.CUX2801001:2.CMD_SETS").State(command);
+        dom.GetObject("CUxD.CUX2801001:2.CMD_QUERY_RET").State (1);
+        WriteLine(dom.GetObject("CUxD.CUX2801001:2.CMD_RETS").State());`;
 
     sendTo('hm-rega.0', upTimeScript, res => {
         if (logging) log(JSON.stringify(res), 'info');
@@ -107,9 +109,9 @@ schedule('*/2 * * * *', () => {
     const sysTempScript = `
 
         string command = "/usr/bin/vcgencmd measure_temp | awk '// { printf substr($1, length($1) -5, 4)}'";
-        dom.GetObject("CUxD."+cuxDId+":1.CMD_SETS").State(command);
-        dom.GetObject("CUxD."+cuxDId+":1.CMD_QUERY_RET").State(1);
-        WriteLine(dom.GetObject("CUxD."+cuxDId+":1.CMD_RETS").State());`;
+        dom.GetObject("CUxD.CUX2801001:1.CMD_SETS").State(command);
+        dom.GetObject("CUxD.CUX2801001:1.CMD_QUERY_RET").State(1);
+        WriteLine(dom.GetObject("CUxD.CUX2801001:1.CMD_RETS").State());`;
 
     sendTo('hm-rega.0', sysTempScript, res => {
         if (logging) log(JSON.stringify(res), 'info');
@@ -126,17 +128,19 @@ schedule('*/2 * * * *', () => {
     */
 
     /* CuxD based */
+    /*
     const cpuFrequencyScript = `
         string command = "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq | awk '// {printf $1/1000}'";
-        dom.GetObject("CUxD."+cuxDId+":3.CMD_SETS").State(command);
-        dom.GetObject("CUxD."+cuxDId+":3.CMD_QUERY_RET").State (1);
-        WriteLine(dom.GetObject ("CUxD."+cuxDId+":3.CMD_RETS").State());`;
+        dom.GetObject("CUxD.CUX2801001:3.CMD_SETS").State(command);
+        dom.GetObject("CUxD.CUX2801001:3.CMD_QUERY_RET").State (1);
+        WriteLine(dom.GetObject ("CUxD.CUX2801001:3.CMD_RETS").State());`;
 
     sendTo('hm-rega.0', cpuFrequencyScript, res => {
         if (logging) log(JSON.stringify(res), 'info');
         if (!res.error) setState(idCpuFreq, parseFloat(res.result), true);
         else log(res.error, 'warn');
     });
+    */
 });
 
 
@@ -159,20 +163,32 @@ const pushOverUser = myPushOverUserWerner;  // defined in global
 
 
 
-function checkCCUConnection () 
+async function checkCCUConnection () 
 {
     let ccuRega = true;
     let ccuRPC0 = true;
     let ccuRPC1 = true;
     let ccuRPC2 = true;
     let ccuRPC3 = true;
-    if (useccuRega) ccuRega = getState(idCCURega).val;
-    if (useccuRPC0) ccuRPC0 = getState(idCCURPC0).val;
-    if (useccuRPC1) ccuRPC1 = getState(idCCURPC1).val;
-    if (useccuRPC2) ccuRPC2 = getState(idCCURPC2).val;
-    if (useccuRPC3) ccuRPC3 = getState(idCCURPC3).val;
-    let ccuConnection = ccuRega && ccuRPC0 && ccuRPC1 && ccuRPC2 && ccuRPC3;
-    return (ccuConnection);
+
+    if (useccuRega) {
+        ccuRega = (await getStateAsync(idCCURega)).val;
+    }
+    if (useccuRPC0) {
+        ccuRPC0 = (await getStateAsync(idCCURPC0)).val;
+    }
+    if (useccuRPC1) {
+        ccuRPC1 = (await getStateAsync(idCCURPC1)).val;
+    }
+    if (useccuRPC2) {
+        ccuRPC2 = (await getStateAsync(idCCURPC2)).val;
+    }
+    if (useccuRPC3) {
+        ccuRPC3 = (await getStateAsync(idCCURPC3)).val;
+    }
+   
+    var thisCcuConnection = Boolean(ccuRega && ccuRPC0 && ccuRPC1 && ccuRPC2 && ccuRPC3);
+    return (thisCcuConnection);
 }
 
 function sendCCUFailed (message,prio)
@@ -213,7 +229,7 @@ async function handleCCUFailed (oldCCUConnection,ccuConnection)
         // wait 5 min then send notification
         ccuFailedTimeOut = setTimeout (async function()
             {
-                if (checkCCUConnection()===false) {                   
+                if (await checkCCUConnection()===false) {                   
                     sendCCUFailed('CCU is not connected',2);
                 }    
             }
@@ -221,7 +237,7 @@ async function handleCCUFailed (oldCCUConnection,ccuConnection)
         // wait 60 min then reboot ccu
         ccuRebootTimeOut = setTimeout (async function()
             {
-                if (checkCCUConnection()===false) { 
+                if (await checkCCUConnection()===false) { 
                     await setStateAsync(idCCURebootNow, true);
                     sendCCUFailed('CCU is restarted',0);                               
                 }    
@@ -247,8 +263,9 @@ async function handleCCUFailed (oldCCUConnection,ccuConnection)
 
 
 on({id:[idCCURega,idCCURPC0,idCCURPC1,idCCURPC2,idCCURPC3] , change:'ne'}, async function (obj) {
-    let oldCCUConnection = getState(idCCUConnection).val; 
-    let ccuConection = checkCCUConnection();
+    const stateObject = await getStateAsync(idCCUConnection);
+    let oldCCUConnection = stateObject.val;
+    let ccuConection = await checkCCUConnection();
     if (oldCCUConnection!=ccuConection) {
         if (logging) console.log ('ccu handle started');
         await handleCCUFailed (oldCCUConnection,ccuConection);
@@ -266,8 +283,9 @@ const ccuSSHUser = myCCUSSHUser;    // defined in global
 const ccuSSHPass = myCCUSSHPass;    // defined in global
 
 
-function rebootCCU() {
-    var rebootActive = getState(idCCURebootNow).val;
+async function rebootCCU() {
+    const stateObject = await getStateAsync(idCCURebootNow);
+    var rebootActive  = stateObject.val;
     if (rebootActive===true) {
         ssh.connect({
             host: ccuIP,
