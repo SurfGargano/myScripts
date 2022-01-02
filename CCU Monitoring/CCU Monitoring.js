@@ -1,12 +1,13 @@
 /*  Script CCU Monitoring
     Author : gargano
 
-    Version 1.0.2 
-    Last Update 24.10.2021 
+    Version 1.0.3 
+    Last Update 20.11.2021 
 
     Change history :
     1.0.1 global definitons moved to global definiton file
     1.0.2 use await getStateAsync
+    1.0.3 reset CCU via Mini-Wemos
 
 *   @author Moritz Heusinger <moritz.heusinger@gmail.com>
 *   https://iot-blog.net/2019/02/08/iobroker-homematic-ccu-ueberwachen/
@@ -29,6 +30,7 @@ const idCCURPC3 = 'hm-rpc.3.info.connection';
 const idCCUConnection =  prefix+'ccu.connection';
 const idCCUConnectionChangeTime =  prefix+'ccu.connectionChangeTime';
 const idCCURebootNow = prefix+'ccu.rebootNow';
+const idCCUResetNow = prefix+'ccu.resetNow'; 
 
 
 const createStateList = [
@@ -37,7 +39,8 @@ const createStateList = [
     {name :idUpTime, type:"string", role : "value", def : 0},
     {name :idCCUConnection, type:"boolean", role : "value", def : true},
     {name :idCCUConnectionChangeTime, type:"number", role : "date"},
-    {name :idCCURebootNow, type:"boolean", role : "value", def : false}
+    {name :idCCURebootNow, type:"boolean", role : "value", def : false},
+    {name :idCCUResetNow, type:"boolean", role : "value", def : false}
 ]
 
 async function createMyState(item) {
@@ -215,8 +218,9 @@ function sendCCUFailed (message,prio)
 }
 
         
-var ccuFailedTimeOut;
-var ccuRebootTimeOut;
+var ccuFailedTimeOut=null;
+var ccuRebootTimeOut=null;
+var ccuResetTimeOut=null;
 
 async function handleCCUFailed (oldCCUConnection,ccuConnection) 
 {    
@@ -234,7 +238,7 @@ async function handleCCUFailed (oldCCUConnection,ccuConnection)
                 }    
             }
         , 5*60000); 
-        // wait 60 min then reboot ccu
+        // wait 30 min then reboot ccu via ssh
         ccuRebootTimeOut = setTimeout (async function()
             {
                 if (await checkCCUConnection()===false) { 
@@ -242,8 +246,19 @@ async function handleCCUFailed (oldCCUConnection,ccuConnection)
                     sendCCUFailed('CCU is restarted',0);                               
                 }    
             }
-        , 60*60000);      
+        , 45*60000); 
+        // wait 60 min then reset ccu via wemos-mini
+        ccuResetTimeOut = setTimeout (async function()
+            {
+                if (await checkCCUConnection()===false) { 
+                    await setStateAsync(idCCUResetNow, true);
+                    sendCCUFailed('CCU is resetted',0);                               
+                }    
+            }
+        , 90*60000); 
+
     } 
+    
     if (ccuConnection===true) {
         if (ccuFailedTimeOut) {
             clearTimeout (ccuFailedTimeOut);
@@ -252,6 +267,10 @@ async function handleCCUFailed (oldCCUConnection,ccuConnection)
         if (ccuRebootTimeOut) {
             clearTimeout (ccuRebootTimeOut);
             ccuRebootTimeOut = null;
+        }
+        if (ccuResetTimeOut) {
+            clearTimeout (ccuResetTimeOut);
+            ccuResetTimeOut = null;
         }
         if (logging) console.log ('ccu is connected again');
         let ts =  Date.now();
@@ -275,8 +294,8 @@ on({id:[idCCURega,idCCURPC0,idCCURPC1,idCCURPC2,idCCURPC3] , change:'ne'}, async
 
 // Reboot of ccu
 
-node_ssh = require('node-ssh').NodeSSH;
-ssh = new node_ssh();
+const node_ssh = require('node-ssh').NodeSSH;
+var ssh = new node_ssh();
 
 const ccuIP = myCCUIP;              // defined in global
 const ccuSSHUser = myCCUSSHUser;    // defined in global
@@ -284,6 +303,7 @@ const ccuSSHPass = myCCUSSHPass;    // defined in global
 
 
 async function rebootCCU() {
+    log('start reboot ccu','warn');
     const stateObject = await getStateAsync(idCCURebootNow);
     var rebootActive  = stateObject.val;
     if (rebootActive===true) {
@@ -305,7 +325,31 @@ async function rebootCCU() {
     }
 }
 
+
+
+const axios = require ('axios');
+const resetCCUIP = 'http://192.168.178.36';
+const resetCCUCmd = '/resetCCU';
+
+
+function resetCCU() {
+    log('start reset ccu','warn');
+    axios.post(resetCCUIP+resetCCUCmd, {
+    })
+    .then(function (response) {
+        log(response,'warn');
+    })
+    .catch(function (error) {
+//        log(error,'error');
+    })    
+    .then (function () {
+        setState(idCCUResetNow,false); 
+    })
+}
+
 on({id: idCCURebootNow, val: true}, rebootCCU); // triggers if value is true
+
+on({id: idCCUResetNow, val: true}, resetCCU); // triggers if value is true
 
 
 
